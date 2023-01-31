@@ -24,6 +24,9 @@ class HiddenLayer(Layer):
         self.output = np.dot(self.weights, self.input) + self.bias.T
         return self.output
 
+    def backwardPass():
+        pass
+
     def displayActivity(self):
         print("Hidden Layer Weights: " + str(self.weights))
         print("Hidden Layer Bias: " + str(self.bias))
@@ -40,6 +43,9 @@ class SigmoidActivation(Layer):
         self.input = input
         self.output = 1 / (1 + np.exp(-self.input))
         return self.output
+
+    def backwardPass():
+        pass
 
     def displayActivity(self):
         print("Sigmoid Input: " + str(self.input))
@@ -58,6 +64,9 @@ class SoftMaxActivation(Layer):
             self.output.append(np.exp(i) / np.sum(np.exp(input)))
         return self.output
 
+    def backwardPass():
+        pass
+
     def displayActivity(self):
         print("SoftMax Input: " + str(self.input))
         print("SoftMax Output: " + str(self.output) + "\n")
@@ -75,6 +84,9 @@ class Error(Layer):
         self.totalError = self.totalSquaredError(self.networkOutput, self.labels)
         self.totalErrorDerivative = self.squaredErrorDerivative(self.networkOutput, labels)
 
+    def backwardPass():
+        pass
+
     def totalSquaredError(self, predicted, labels):
         return np.sum((1/2) * np.power(np.subtract(target, predicted), 2))
 
@@ -89,6 +101,7 @@ class Error(Layer):
 
 
 #____________________________________________________________________________
+# Sandbox Area for Testing Framework
 
 target = [0, 1]
 alpha = 0.1
