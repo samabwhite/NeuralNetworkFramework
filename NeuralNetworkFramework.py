@@ -1,5 +1,7 @@
 import numpy as np
 
+
+
 class Layer:
     def __init__(self):
         self.input = None
@@ -25,7 +27,7 @@ class HiddenLayer(Layer):
         return self.output
 
     def backwardPass():
-        pass
+        pass # inputs from the previous
 
     def displayActivity(self):
         print("Hidden Layer Weights: " + str(self.weights))
@@ -45,7 +47,7 @@ class SigmoidActivation(Layer):
         return self.output
 
     def backwardPass():
-        pass
+        pass # netOutput * (1 - netOutput)
 
     def displayActivity(self):
         print("Sigmoid Input: " + str(self.input))
@@ -88,7 +90,7 @@ class Error(Layer):
         pass
 
     def totalSquaredError(self, predicted, labels):
-        return np.sum((1/2) * np.power(np.subtract(target, predicted), 2))
+        return np.sum((1/2) * np.power(np.subtract(labels, predicted), 2))
 
     def squaredErrorDerivative(self, predicted, labels):
         return np.subtract(predicted, labels)
@@ -98,6 +100,7 @@ class Error(Layer):
         print("Labels: " + str(self.labels))
         print("Total Error: " + str(self.totalError))
         print("Error Derivative: " + str(self.totalErrorDerivative) + "\n")
+
 
 
 #____________________________________________________________________________
@@ -122,9 +125,19 @@ outputLayer.forwardPass(sigmoidLayer.output)
 softMaxLayer.forwardPass(outputLayer.output)
 error.forwardPass(softMaxLayer.output, target)
 
-error.displayActivity()
+def backwardPropagation(inputs, labels, hiddenLayer, sigmoidLayer, outputLayer, softMaxLayer, errorLayer):
+    errorDeriv = np.subtract(outputLayer.output, labels) # output - labels 
+    softMaxDeriv = softMaxLayer.output * (np.subtract(1, softMaxLayer.output)) # softMaxOutput * (1 - softMaxOutput)
+    outputWeightDeriv = hiddenLayer.output
+    bias2Deriv = ouputLayer.input
+    outputNetInputDeriv = outputLayer.weights
+    sigmoidDeriv = None
+    hiddenWeightDeriv = None
+    bias1Deriv = None
 
+backwardPropagation(inputs1, target, hiddenLayer1, sigmoidLayer, outputLayer, softMaxLayer, error)
 
+    
 
 
 
