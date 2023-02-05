@@ -125,18 +125,53 @@ outputLayer.forwardPass(sigmoidLayer.output)
 softMaxLayer.forwardPass(outputLayer.output)
 error.forwardPass(softMaxLayer.output, target)
 
+def foil(dZ, input):
+    dW = []
+    for i in dZ:
+        for k in input:
+            dW.append(i * k)
+    return dW
+
 def backwardPropagation(inputs, labels, hiddenLayer, sigmoidLayer, outputLayer, softMaxLayer, errorLayer):
     errorDeriv = np.subtract(outputLayer.output, labels) # output - labels 
     softMaxDeriv = softMaxLayer.output * (np.subtract(1, softMaxLayer.output)) # softMaxOutput * (1 - softMaxOutput)
-    outputWeightDeriv = hiddenLayer.output
-    bias2Deriv = ouputLayer.input
-    outputNetInputDeriv = outputLayer.weights
-    sigmoidDeriv = None
-    hiddenWeightDeriv = None
-    bias1Deriv = None
+    sigmoidDeriv = sigmoidLayer.output * (np.subtract(1, sigmoidLayer.output))
+    
+    dZ2 = errorDeriv * softMaxDeriv
+    dB2 = dZ2 
+    dW2 = np.array(foil(dZ2, hiddenLayer.output))
 
-backwardPropagation(inputs1, target, hiddenLayer1, sigmoidLayer, outputLayer, softMaxLayer, error)
+    dZ1 = np.dot(dZ2, outputLayer.weights) * sigmoidDeriv
+    dB1 = dZ1
+    dW1 = np.array(foil(dZ1, inputs))
 
+    return [dW1, dB1, dW2, dB2]
+
+
+def updateValues(hiddenLayer, outputLayer, dW1, dB1, dW2, dB2):
+    hiddenLayer.weights += (-alpha * np.reshape(dW1, (2,2)))
+    hiddenLayer.bias += (-alpha * dB1)
+    outputLayer.weights += (-alpha * np.reshape(dW1, (2,2)))
+    outputLayer.bias += (-alpha * dB2)
+    
+    
+    
+
+
+dW1, dB1, dW2, dB2 = backwardPropagation(inputs1, target, hiddenLayer1, sigmoidLayer, outputLayer, softMaxLayer, error)
+
+print("Hidden Layer Weights: ")
+print(str(hiddenLayer1.weights) + "\n")
+print("Hidden Layer Biases: ")
+print(str(hiddenLayer1.bias) + "\n")
+
+print("Output Layer Weights: ")
+print(str(outputLayer.weights) + "\n")
+print("Output Layer Biases: ")
+print(str(outputLayer.bias) + "\n")
+
+
+updateValues(hiddenLayer1, outputLayer, dW1, dB1, dW2, dB2)
     
 
 
