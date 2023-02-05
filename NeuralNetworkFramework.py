@@ -106,24 +106,6 @@ class Error(Layer):
 #____________________________________________________________________________
 # Sandbox Area for Testing Framework
 
-target = [0, 1]
-alpha = 0.1
-
-inputs1 = np.array([0.05, 0.10])
-
-hiddenLayer1 = HiddenLayer(2,2)
-sigmoidLayer = SigmoidActivation()
-outputLayer = HiddenLayer(2,2)
-softMaxLayer = SoftMaxActivation()
-error = Error()
-
-
-hiddenLayer1.forwardPass(inputs1) 
-sigmoidLayer.forwardPass(hiddenLayer1.output)
-
-outputLayer.forwardPass(sigmoidLayer.output)
-softMaxLayer.forwardPass(outputLayer.output)
-error.forwardPass(softMaxLayer.output, target)
 
 def foil(dZ, input):
     dW = []
@@ -157,21 +139,43 @@ def updateValues(hiddenLayer, outputLayer, dW1, dB1, dW2, dB2):
     
     
 
+target = [0.01, 0.99]
+alpha = 0.1
+
+inputs1 = np.array([0.05, 0.10])
+
+hiddenLayer1 = HiddenLayer(2,2)
+hiddenLayer1.weights = np.array([[0.15, 0.20],[0.25, 0.30]])
+hiddenLayer1.bias = np.array([0.35, 0.35])
+
+sigmoidLayer = SigmoidActivation()
+outputLayer = HiddenLayer(2,2)
+outputLayer.weights = np.array([[0.40, 0.45],[0.50, 0.55]])
+outputLayer.bias = np.array([0.60, 0.60])
+
+softMaxLayer = SoftMaxActivation()
+error = Error()
+
+hiddenLayer1.forwardPass(inputs1) 
+sigmoidLayer.forwardPass(hiddenLayer1.output)
+outputLayer.forwardPass(sigmoidLayer.output)
+softMaxLayer.forwardPass(outputLayer.output)
+error.forwardPass(softMaxLayer.output, target)
+
+error.displayActivity()
 
 dW1, dB1, dW2, dB2 = backwardPropagation(inputs1, target, hiddenLayer1, sigmoidLayer, outputLayer, softMaxLayer, error)
-
-print("Hidden Layer Weights: ")
-print(str(hiddenLayer1.weights) + "\n")
-print("Hidden Layer Biases: ")
-print(str(hiddenLayer1.bias) + "\n")
-
-print("Output Layer Weights: ")
-print(str(outputLayer.weights) + "\n")
-print("Output Layer Biases: ")
-print(str(outputLayer.bias) + "\n")
-
-
 updateValues(hiddenLayer1, outputLayer, dW1, dB1, dW2, dB2)
+
+
+#-------------- 2nd pass 
+hiddenLayer1.forwardPass(inputs1) 
+sigmoidLayer.forwardPass(hiddenLayer1.output)
+outputLayer.forwardPass(sigmoidLayer.output)
+softMaxLayer.forwardPass(outputLayer.output)
+error.forwardPass(softMaxLayer.output, target)
+
+error.displayActivity()
     
 
 
