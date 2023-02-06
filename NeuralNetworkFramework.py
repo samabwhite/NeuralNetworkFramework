@@ -1,15 +1,33 @@
 import numpy as np
 
+class NeuralNetwork(object):
+    def __init__(self, inputs, labels, hiddenLayerShape, outputNodes, epochs, alpha):
+        self.inputs = inputs
+        self.labels = labels
+        self.alpha = alpha
+        self.epochs = epochs
+
+        # hiddenLayerShape [2, 3] first hidden layer is 2 nodes, second is 3 nodes
+        
 
 
-class Layer:
+
+
+class Layer(NeuralNetwork):
     def __init__(self):
         self.input = None
         self.output = None 
-    def forwardPass():
+        self.nextLayer = None
+
+    def forwardPass(self):
         pass
-    def backwardPass():
+
+    def backwardPass(self):
         pass
+
+    def update(self):
+        pass
+
     def displayActivity(self):
         print("Layer Input: " + str(self.input))
         print("Layer Output: " + str(self.output) + "\n")
@@ -17,17 +35,30 @@ class Layer:
 
 
 class HiddenLayer(Layer):
-    def __init__(self, inputSize, outputSize):
+    def __init__(self, inputSize, outputSize, nextLayer, prevLayer):
         self.weights = np.random.randn(outputSize, inputSize)
         self.bias = np.random.randn(outputSize)
+        self.nextLayer = nextLayer
+        self.prevLayer = prevLayer
     
     def forwardPass(self, input):
         self.input = input
         self.output = np.dot(self.weights, self.input) + self.bias.T
         return self.output
 
-    def backwardPass():
-        pass # inputs from the previous
+    def backwardPass(self, errorDeriv, softMaxDeriv, sigmoidDeriv):
+        if self.nextLayer == None: 
+            self.dZ = errorDeriv * softMaxDeriv
+            self.dB = self.dZ
+            self.dW = np.array(self.foil(self.dZ, self.prevLayer.output))
+        else:   
+            self.dZ = np.dot(self.nextLayer.dZ, self.nextLayer.weights) * sigmoidDeriv
+            self.dB = self.dZ
+            self.dW = np.array(self.foil(self.dZ, self.input))
+
+    def update(self):
+        self.weights += (-self.alpha * np.reshape(self.dW, (2,2)))
+        self.bias += (-self.alpha * self.dB)
 
     def displayActivity(self):
         print("Hidden Layer Weights: " + str(self.weights))
@@ -35,6 +66,12 @@ class HiddenLayer(Layer):
         print("Hidden Layer Input: " + str(self.input))
         print("Hidden Layer Output: " + str(self.output) + "\n")
 
+    def foil():
+        dW = []
+        for i in dZ:
+            for k in input:
+                dW.append(i * k)
+        return dW
 
 
 class SigmoidActivation(Layer):
@@ -46,8 +83,11 @@ class SigmoidActivation(Layer):
         self.output = 1 / (1 + np.exp(-self.input))
         return self.output
 
-    def backwardPass():
-        pass # netOutput * (1 - netOutput)
+    def backwardPass(self):
+        self.derivative = self.output * (np.subtract(1, self.output))
+
+    def update(self):
+        pass
 
     def displayActivity(self):
         print("Sigmoid Input: " + str(self.input))
@@ -66,7 +106,10 @@ class SoftMaxActivation(Layer):
             self.output.append(np.exp(i) / np.sum(np.exp(input)))
         return self.output
 
-    def backwardPass():
+    def backwardPass(self):
+        self.derivative = self.output * (np.subtract(1, self.output)) # softMaxOutput * (1 - softMaxOutput)
+
+    def update(self):
         pass
 
     def displayActivity(self):
@@ -86,8 +129,8 @@ class Error(Layer):
         self.totalError = self.totalSquaredError(self.networkOutput, self.labels)
         self.totalErrorDerivative = self.squaredErrorDerivative(self.networkOutput, labels)
 
-    def backwardPass():
-        pass
+    def backwardPass(self):
+        self.derivative = np.subtract(self.networkOutput, self.labels) # output - labels 
 
     def totalSquaredError(self, predicted, labels):
         return np.sum((1/2) * np.power(np.subtract(labels, predicted), 2))
@@ -106,7 +149,7 @@ class Error(Layer):
 #____________________________________________________________________________
 # Sandbox Area for Testing Framework
 
-
+'''
 def foil(dZ, input):
     dW = []
     for i in dZ:
@@ -133,7 +176,7 @@ def backwardPropagation(inputs, labels, hiddenLayer, sigmoidLayer, outputLayer, 
 def updateValues(hiddenLayer, outputLayer, dW1, dB1, dW2, dB2):
     hiddenLayer.weights += (-alpha * np.reshape(dW1, (2,2)))
     hiddenLayer.bias += (-alpha * dB1)
-    outputLayer.weights += (-alpha * np.reshape(dW1, (2,2)))
+    outputLayer.weights += (-alpha * np.reshape(dW2, (2,2)))
     outputLayer.bias += (-alpha * dB2)
     
     
@@ -167,16 +210,7 @@ error.displayActivity()
 dW1, dB1, dW2, dB2 = backwardPropagation(inputs1, target, hiddenLayer1, sigmoidLayer, outputLayer, softMaxLayer, error)
 updateValues(hiddenLayer1, outputLayer, dW1, dB1, dW2, dB2)
 
-
-#-------------- 2nd pass 
-hiddenLayer1.forwardPass(inputs1) 
-sigmoidLayer.forwardPass(hiddenLayer1.output)
-outputLayer.forwardPass(sigmoidLayer.output)
-softMaxLayer.forwardPass(outputLayer.output)
-error.forwardPass(softMaxLayer.output, target)
-
-error.displayActivity()
-    
+'''
 
 
 
