@@ -6,15 +6,70 @@ class NeuralNetwork(object):
         self.labels = labels
         self.alpha = alpha
         self.epochs = epochs
+        self.layers = [None] # first layer value is None as it represents the input layer
 
-    def addHiddenLayer():
-        pass
+    def addHiddenLayer(self, inputSize, outputSize, layerNumber):   # add first layer or automatically checks compatibility and adds layer to end '
+        newLayer = HiddenLayer(inputSize, outputSize) 
+        if not self.checkLayerCompatibility(newLayer, layerNumber):
+            return
+        self.layers.insert(layerNumber, newLayer)
 
-    def addActivation():
+    def addActivation(layerNumber, type):
         pass
 
     def addError():
         pass
+
+    def forwardPass(self):
+        network = self.layers
+        network[1].forwardPass(self.dataset)
+        for index in range(2, len(network)):
+            network[index].forwardPass(network[index-1].output)
+
+
+
+
+    def checkLayerCompatibility(self, newLayer, layerNumber):
+
+        # if layer number is specified as 0, return error
+        if layerNumber == 0:
+            print("Layer number cannot be 0. The 0th index is reserved for the inputs of the neural network.")
+            return False
+
+        def checkFit(layer1, layer2):
+            if layer1.weights.shape[1] == layer2.weights.shape[0]:
+                return True
+            else: 
+                print("New layer with shape " + str(newLayer.weights.shape) +  " is NOT compatable with " + str(self.layers[-1].weights.shape))
+                return False
+
+        # if there are no layers, return true
+        if len(self.layers) == 1:
+            try:
+                result = self.dataset.shape[1] == newLayer.weights.shape[0]
+            except:
+                result = self.dataset.shape[0] == newLayer.weights.shape[0]
+
+            if result:
+                return True
+            else:
+                print(str("Inputs with shape " + str(self.dataset.shape) + " does not fit the new layer shape " + str(newLayer.weights.shape)))
+                return False
+        # if layer is being placed in first index, check rear compatibiltiy only
+        elif layerNumber == 1 and (self.layers[layerNumber] is not None):
+            return checkFit(newLayer, self.layers[layerNumber])
+        # if layer is being placed at end, check front compatibility only
+        elif layerNumber == len(self.layers):
+            return checkFit(self.layers[-1], newLayer)
+        # if layer is being placed in the middle, check both sides compatibility
+        else:
+            if checkFit(self.layers[layerNumber-1], newLayer) and checkFit(newLayer, self.layers[layerNumber]):
+                return True
+            return False
+
+
+        
+
 
 
 
@@ -35,50 +90,46 @@ class Layer(NeuralNetwork):
     def update(self):
         pass
 
-    def displayActivity(self):
-        print("Layer Input: " + str(self.input))
-        print("Layer Output: " + str(self.output) + "\n")
         
 
 
 class HiddenLayer(Layer):
-    def __init__(self, inputSize, outputSize, prevLayer, nextLayer):
-        self.weights = np.random.randn(outputSize, inputSize)
+    def __init__(self, inputSize, outputSize):
+        self.weights = np.random.randn(inputSize, outputSize)
         self.bias = np.random.randn(outputSize)
-        self.nextLayer = nextLayer
-        self.prevLayer = prevLayer
+        #self.nextLayer = nextLayer
+        #self.prevLayer = prevLayer
+        self.activationLayer = None
     
     def forwardPass(self, input):
         self.input = input
-        self.output = np.dot(self.weights, self.input) + self.bias.T
+        self.output = np.dot(self.input, self.weights) + self.bias.T
         return self.output
 
     def backwardPass(self, errorDeriv, softMaxDeriv, sigmoidDeriv):
+        def foil(dZ, input):
+            dW = []
+            for i in dZ:
+                for k in input:
+                    dW.append(i * k)
+            return dW
         if self.nextLayer == None: 
             self.dZ = errorDeriv * softMaxDeriv
             self.dB = self.dZ
-            self.dW = np.array(self.foil(self.dZ, self.prevLayer.output))
+            self.dW = np.array(foil(self.dZ, self.prevLayer.output))
         else:   
             self.dZ = np.dot(self.nextLayer.dZ, self.nextLayer.weights) * sigmoidDeriv
             self.dB = self.dZ
-            self.dW = np.array(self.foil(self.dZ, self.input))
+            self.dW = np.array(foil(self.dZ, self.input))
 
     def update(self):
         self.weights += (-self.alpha * np.reshape(self.dW, (2,2)))
         self.bias += (-self.alpha * self.dB)
 
-    def displayActivity(self):
-        print("Hidden Layer Weights: " + str(self.weights))
-        print("Hidden Layer Bias: " + str(self.bias))
-        print("Hidden Layer Input: " + str(self.input))
-        print("Hidden Layer Output: " + str(self.output) + "\n")
 
-    def foil():
-        dW = []
-        for i in dZ:
-            for k in input:
-                dW.append(i * k)
-        return dW
+    def setActivation():
+        pass # NOT IMPLEMENTED
+        
 
 
 class SigmoidActivation(Layer):
@@ -96,9 +147,6 @@ class SigmoidActivation(Layer):
     def update(self):
         pass
 
-    def displayActivity(self):
-        print("Sigmoid Input: " + str(self.input))
-        print("Sigmoid Output: " + str(self.output) + "\n")
 
 
 
@@ -118,10 +166,6 @@ class SoftMaxActivation(Layer):
 
     def update(self):
         pass
-
-    def displayActivity(self):
-        print("SoftMax Input: " + str(self.input))
-        print("SoftMax Output: " + str(self.output) + "\n")
 
 
 
@@ -145,79 +189,22 @@ class Error(Layer):
     def squaredErrorDerivative(self, predicted, labels):
         return np.subtract(predicted, labels)
 
-    def displayActivity(self):
-        print("Network Output: " + str(self.networkOutput))
-        print("Labels: " + str(self.labels))
-        print("Total Error: " + str(self.totalError))
-        print("Error Derivative: " + str(self.totalErrorDerivative) + "\n")
 
 
 
 #____________________________________________________________________________
 # Sandbox Area for Testing Framework
 
-'''
-def foil(dZ, input):
-    dW = []
-    for i in dZ:
-        for k in input:
-            dW.append(i * k)
-    return dW
+inputs = np.array([0.1, 0.2, 0.5, 0.7, 1.0])
+labels = np.array([0.01, 0.99])
 
-def backwardPropagation(inputs, labels, hiddenLayer, sigmoidLayer, outputLayer, softMaxLayer, errorLayer):
-    errorDeriv = np.subtract(outputLayer.output, labels) # output - labels 
-    softMaxDeriv = softMaxLayer.output * (np.subtract(1, softMaxLayer.output)) # softMaxOutput * (1 - softMaxOutput)
-    sigmoidDeriv = sigmoidLayer.output * (np.subtract(1, sigmoidLayer.output))
-    
-    dZ2 = errorDeriv * softMaxDeriv
-    dB2 = dZ2 
-    dW2 = np.array(foil(dZ2, hiddenLayer.output))
+nn = NeuralNetwork(inputs, labels, 1, 0.01)
 
-    dZ1 = np.dot(dZ2, outputLayer.weights) * sigmoidDeriv
-    dB1 = dZ1
-    dW1 = np.array(foil(dZ1, inputs))
-
-    return [dW1, dB1, dW2, dB2]
+nn.addHiddenLayer(5, 2, 1)
+nn.addHiddenLayer(2, 5, 2)
 
 
-def updateValues(hiddenLayer, outputLayer, dW1, dB1, dW2, dB2):
-    hiddenLayer.weights += (-alpha * np.reshape(dW1, (2,2)))
-    hiddenLayer.bias += (-alpha * dB1)
-    outputLayer.weights += (-alpha * np.reshape(dW2, (2,2)))
-    outputLayer.bias += (-alpha * dB2)
-    
-    
-    
-
-target = [0.01, 0.99]
-alpha = 0.1
-
-inputs1 = np.array([0.05, 0.10])
-
-hiddenLayer1 = HiddenLayer(2,2)
-hiddenLayer1.weights = np.array([[0.15, 0.20],[0.25, 0.30]])
-hiddenLayer1.bias = np.array([0.35, 0.35])
-
-sigmoidLayer = SigmoidActivation()
-outputLayer = HiddenLayer(2,2)
-outputLayer.weights = np.array([[0.40, 0.45],[0.50, 0.55]])
-outputLayer.bias = np.array([0.60, 0.60])
-
-softMaxLayer = SoftMaxActivation()
-error = Error()
-
-hiddenLayer1.forwardPass(inputs1) 
-sigmoidLayer.forwardPass(hiddenLayer1.output)
-outputLayer.forwardPass(sigmoidLayer.output)
-softMaxLayer.forwardPass(outputLayer.output)
-error.forwardPass(softMaxLayer.output, target)
-
-error.displayActivity()
-
-dW1, dB1, dW2, dB2 = backwardPropagation(inputs1, target, hiddenLayer1, sigmoidLayer, outputLayer, softMaxLayer, error)
-updateValues(hiddenLayer1, outputLayer, dW1, dB1, dW2, dB2)
-
-'''
+nn.forwardPass()
 
 
 
