@@ -7,6 +7,7 @@ class NeuralNetwork(object):
         self.alpha = alpha
         self.epochs = epochs
         self.layers = [None] # first layer value is None as it represents the input layer
+        self.errorLayer = None
 
     def addHiddenLayer(self, inputSize, outputSize, layerNumber):   # add first layer or automatically checks compatibility and adds layer to end '
         newLayer = HiddenLayer(inputSize, outputSize) 
@@ -14,17 +15,29 @@ class NeuralNetwork(object):
             return
         self.layers.insert(layerNumber, newLayer)
 
-    def addActivation(layerNumber, type):
-        pass
+    def addActivation(self, layerNumber, type):
+        self.layers[layerNumber].setActivation(type)
 
-    def addError():
-        pass
+    def addError(self): # figure out a way to prevent hidden layers to be added after error layer
+        self.errorLayer = Error()
+        self.layers.append(self.errorLayer)
 
     def forwardPass(self):
         network = self.layers
         network[1].forwardPass(self.dataset)
-        for index in range(2, len(network)):
+        for index in range(2, len(network) - 1):
             network[index].forwardPass(network[index-1].output)
+        network[-1].forwardPass(network[-2].output, self.labels)
+
+    def backwardPass(self):
+        pass
+
+    def displayNetwork(self):
+        for layer in self.layers[1:]:
+            print(str(layer.output))
+
+    def displayNetworkOutput(self):
+        print("Error: " + str(self.errorLayer.totalError))
 
 
 
@@ -106,6 +119,7 @@ class HiddenLayer(Layer):
         self.output = np.dot(self.input, self.weights) + self.bias.T
         return self.output
 
+
     def backwardPass(self, errorDeriv, softMaxDeriv, sigmoidDeriv):
         def foil(dZ, input):
             dW = []
@@ -127,8 +141,13 @@ class HiddenLayer(Layer):
         self.bias += (-self.alpha * self.dB)
 
 
-    def setActivation():
-        pass # NOT IMPLEMENTED
+    def setActivation(self, type):
+        if type == "Sigmoid":
+            self.activationLayer = SigmoidActivation()
+        elif type == "Softmax":
+            self.activationLayer = SoftMaxActivation()
+        else:
+            print("Unknown Activation Type")
         
 
 
@@ -180,6 +199,8 @@ class Error(Layer):
         self.totalError = self.totalSquaredError(self.networkOutput, self.labels)
         self.totalErrorDerivative = self.squaredErrorDerivative(self.networkOutput, labels)
 
+        self.output = self.totalError
+
     def backwardPass(self):
         self.derivative = np.subtract(self.networkOutput, self.labels) # output - labels 
 
@@ -201,10 +222,14 @@ labels = np.array([0.01, 0.99])
 nn = NeuralNetwork(inputs, labels, 1, 0.01)
 
 nn.addHiddenLayer(5, 2, 1)
-nn.addHiddenLayer(2, 5, 2)
-
+nn.addActivation(1, "Sigmoid")
+nn.addHiddenLayer(2, 2, 2)
+nn.addActivation(2, "Softmax")
+nn.addError()
 
 nn.forwardPass()
+
+
 
 
 
