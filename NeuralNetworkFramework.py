@@ -1,14 +1,20 @@
 import numpy as np
 
 class NeuralNetwork(object):
-    def __init__(self, inputs, labels, hiddenLayerShape, outputNodes, epochs, alpha):
-        self.inputs = inputs
+    def __init__(self, dataset, labels, epochs, alpha):
+        self.dataset = dataset
         self.labels = labels
         self.alpha = alpha
         self.epochs = epochs
 
-        # hiddenLayerShape [2, 3] first hidden layer is 2 nodes, second is 3 nodes
-        
+    def addHiddenLayer():
+        pass
+
+    def addActivation():
+        pass
+
+    def addError():
+        pass
 
 
 
@@ -18,6 +24,7 @@ class Layer(NeuralNetwork):
         self.input = None
         self.output = None 
         self.nextLayer = None
+        self.prevLayer = None
 
     def forwardPass(self):
         pass
@@ -35,7 +42,7 @@ class Layer(NeuralNetwork):
 
 
 class HiddenLayer(Layer):
-    def __init__(self, inputSize, outputSize, nextLayer, prevLayer):
+    def __init__(self, inputSize, outputSize, prevLayer, nextLayer):
         self.weights = np.random.randn(outputSize, inputSize)
         self.bias = np.random.randn(outputSize)
         self.nextLayer = nextLayer
