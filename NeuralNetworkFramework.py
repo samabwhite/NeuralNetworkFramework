@@ -2,7 +2,7 @@ import numpy as np
 
 class NeuralNetwork(object):
     def __init__(self, dataset, labels, epochs, alpha):
-        self.dataset = dataset
+        self.dataset = dataset[0:epochs]
         self.labels = labels
         self.alpha = alpha
         self.epochs = epochs
@@ -33,15 +33,15 @@ class NeuralNetwork(object):
             return
         del self.complete[layerNumber]
 
-    def forwardPass(self):
+    def forwardPass(self, data, label):
         layer = self.layers
-        layer[1].forwardPass(self.dataset)
+        layer[1].forwardPass(data)
         layer[1].activationLayer.forwardPass(layer[1].output)
         if len(layer) > 3:
             for index in range(2, len(layer) - 1):
                 layer[index].forwardPass(layer[index-1].activationLayer.output)
                 layer[index].activationLayer.forwardPass(layer[index].output)
-        self.errorLayer.forwardPass(layer[-2].activationLayer.output, self.labels)
+        self.errorLayer.forwardPass(layer[-2].activationLayer.output, label)
 
     def backwardPass(self):
         layer = self.layers
@@ -107,7 +107,12 @@ class NeuralNetwork(object):
                 return True
             return False
 
-
+    def train(self):
+        for data, label in zip(self.dataset, self.labels):
+            self.forwardPass(data, label)
+            self.displayNetworkError()
+            self.backwardPass()
+            self.updateWeights()
         
 
 
@@ -162,13 +167,13 @@ class HiddenLayer(Layer):
             self.dW = np.array(foil(self.dZ, network[-3].output))
         else:
             layerIndex = network.index(self)
-            self.dZ = np.dot(network[layerIndex+1].dZ, network[layerIndex+1].weights) * self.activationLayer.backwardPass()
+            self.dZ = np.dot(network[layerIndex+1].dZ, network[layerIndex+1].weights.T) * self.activationLayer.backwardPass() # second dot value rotated
             self.dB = self.dZ
             self.dW = np.array(foil(self.dZ, self.input))
         
 
     def update(self, alpha):
-        self.weights += (-alpha * np.reshape(self.dW, ((self.dW.shape[0]//2),2)))
+        self.weights += (-alpha * np.reshape(self.dW, (self.weights.shape)))
         self.bias += (-alpha * self.dB)
 
 
@@ -238,37 +243,16 @@ class Error(Layer):
         self.derivative = np.subtract(self.networkOutput, self.labels) # output - labels 
         return self.derivative
 
+
     def totalSquaredError(self, predicted, labels):
         return np.sum((1/2) * np.power(np.subtract(labels, predicted), 2))
 
     def squaredErrorDerivative(self, predicted, labels):
-        return np.subtract(predicted, labels)
+        return -np.subtract(labels, predicted)
 
 
 
 
-#____________________________________________________________________________
-# Sandbox Area for Testing Framework
-
-inputs = np.array([0.1, 0.2, 0.5, 0.7, 1.0])
-labels = np.array([0.01, 0.99])
-
-nn = NeuralNetwork(inputs, labels, 1, 0.01)
-
-nn.addHiddenLayer(5, 2, 1)
-nn.addActivation(1, "Sigmoid")
-nn.addHiddenLayer(2, 2, 2)
-nn.addActivation(2, "Softmax")
-nn.addError()
-
-nn.forwardPass()
-nn.displayNetworkError()
-nn.backwardPass()
-nn.updateWeights()
-nn.forwardPass()
-nn.displayNetworkError()
-nn.backwardPass()
-nn.updateWeights()
 
 
 
