@@ -58,8 +58,8 @@ class NeuralNetwork(object):
             layer[-index].update(self.alpha)
 
     def displayNetwork(self):
-        for layer in self.layers[1:]:
-            print(str(layer.output))
+        for layer in self.layers[1:-1]:
+            print(str(layer.weights))
 
     def displayNetworkError(self):
         print("Error: " + str(self.errorLayer.totalError))
@@ -113,6 +113,10 @@ class NeuralNetwork(object):
             self.displayNetworkError()
             self.backwardPass()
             self.updateWeights()
+            print(self.errorLayer.networkOutput)
+            print(str(label) + "\n")
+            
+        
         
 
 
@@ -148,7 +152,7 @@ class HiddenLayer(Layer):
     
     def forwardPass(self, input):
         self.input = input
-        self.output = np.dot(self.input, self.weights) + self.bias.T
+        self.output = np.dot(input, self.weights) + self.bias.T
         return self.output
 
 
@@ -173,8 +177,8 @@ class HiddenLayer(Layer):
         
 
     def update(self, alpha):
-        self.weights += (-alpha * np.reshape(self.dW, (self.weights.shape)))
-        self.bias += (-alpha * self.dB)
+        self.weights += (alpha * np.reshape(self.dW, (self.weights.shape)))
+        self.bias += (alpha * self.dB)
 
 
     def setActivation(self, type):
@@ -192,7 +196,7 @@ class SigmoidActivation(Layer):
         pass
 
     def forwardPass(self, input):
-        self.input = input
+        self.input = input 
         self.output = 1 / (1 + np.exp(-self.input))
         return self.output
 
@@ -213,8 +217,12 @@ class SoftMaxActivation(Layer):
     def forwardPass(self, input):
         self.input = input
         self.output = []
+        self.expValues = self.input - np.max(self.input) # axis=1, keepdims=True
+        self.output = self.expValues / np.sum(self.expValues) # axis=1, keepdims=True
+        '''
         for i in input:
             self.output.append(np.exp(i) / np.sum(np.exp(input)))
+            '''
         return self.output
 
     def backwardPass(self):
@@ -240,7 +248,7 @@ class Error(Layer):
         self.output = self.totalError
 
     def backwardPass(self):
-        self.derivative = np.subtract(self.networkOutput, self.labels) # output - labels 
+        self.derivative = np.subtract(self.networkOutput, self.labels) # output - labels # HERE THIS IS THE SAME AS SQUARED ERROR DERIVATIVE BUT IS PRODUCING DIFFERENT VALUES
         return self.derivative
 
 
