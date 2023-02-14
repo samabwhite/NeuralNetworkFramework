@@ -2,7 +2,7 @@ import numpy as np
 
 class NeuralNetwork(object):
     def __init__(self, dataset, labels, epochs, alpha):
-        self.dataset = dataset[0:epochs]
+        self.dataset = dataset #[0:epochs]
         self.labels = labels
         self.alpha = alpha
         self.epochs = epochs
@@ -110,11 +110,12 @@ class NeuralNetwork(object):
     def train(self):
         for data, label in zip(self.dataset, self.labels):
             self.forwardPass(data, label)
-            self.displayNetworkError()
-            self.backwardPass()
-            self.updateWeights()
-            print(self.errorLayer.networkOutput)
-            print(str(label) + "\n")
+            self.displayNetwork()
+
+            #self.backwardPass()
+            #self.updateWeights()
+            #print(self.errorLayer.networkOutput)
+            #print(str(label) + "\n")
             
         
         
@@ -217,7 +218,8 @@ class SoftMaxActivation(Layer):
     def forwardPass(self, input):
         self.input = input
         self.output = []
-        self.expValues = self.input - np.max(self.input) # axis=1, keepdims=True
+        # TO DO! MAKE AN IF ELSE DEPENDING ON SHAPE OF INPUTS - BATCHES WILL BE USED
+        self.expValues = np.exp(self.input - np.max(self.input)) # axis=1, keepdims=True 
         self.output = self.expValues / np.sum(self.expValues) # axis=1, keepdims=True
         '''
         for i in input:
