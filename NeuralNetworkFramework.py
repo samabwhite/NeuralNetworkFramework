@@ -10,6 +10,7 @@ class NeuralNetwork(object):
         self.errorLayer = None
         self.complete = False
 
+
     def addHiddenLayer(self, inputSize, outputSize, layerNumber):   # add first layer or automatically checks compatibility and adds layer to end '
         if layerNumber >= len(self.layers) and self.complete:
             print("Can't add dense layers after error.")
@@ -108,14 +109,20 @@ class NeuralNetwork(object):
             return False
 
     def train(self):
-        for data, label in zip(self.dataset, self.labels):
-            self.forwardPass(data, label)
-            self.displayNetwork()
+        if not self.complete:
+            print("Error Layer Missing: Network not complete")
 
-            #self.backwardPass()
-            #self.updateWeights()
-            #print(self.errorLayer.networkOutput)
-            #print(str(label) + "\n")
+        for data, label in zip(self.dataset, self.labels):
+    
+            self.forwardPass(data, label)
+            self.displayNetworkError()
+            self.backwardPass()
+            self.updateWeights()
+
+            
+            
+         
+            
             
         
         
@@ -178,8 +185,8 @@ class HiddenLayer(Layer):
         
 
     def update(self, alpha):
-        self.weights += (alpha * np.reshape(self.dW, (self.weights.shape)))
-        self.bias += (alpha * self.dB)
+        self.weights += -(alpha * np.reshape(self.dW, (self.weights.shape)))
+        self.bias += -(alpha * self.dB)
 
 
     def setActivation(self, type):
@@ -202,6 +209,7 @@ class SigmoidActivation(Layer):
         return self.output
 
     def backwardPass(self):
+        #self.derivative = (np.exp(-self.output))/((np.exp(-self.output)+1)**2)
         self.derivative = self.output * (np.subtract(1, self.output))
         return self.derivative  
 
@@ -238,7 +246,8 @@ class SoftMaxActivation(Layer):
 
 class Error(Layer):
     def __init__(self):
-        pass
+        self.correct = 0
+        self.incorrect = 0
 
     def forwardPass(self, networkOutput, labels):
         self.networkOutput = networkOutput
@@ -255,10 +264,19 @@ class Error(Layer):
 
 
     def totalSquaredError(self, predicted, labels):
+        print(labels)
+        print(np.round(predicted)) 
+        if np.argmax(self.networkOutput) == np.where(labels == 1):
+                self.correct += 1
+        else:
+                self.incorrect += 1
+        print(self.correct / (self.correct + self.incorrect))
+
         return np.sum((1/2) * np.power(np.subtract(labels, predicted), 2))
 
     def squaredErrorDerivative(self, predicted, labels):
-        return -np.subtract(labels, predicted)
+        return np.subtract(predicted, labels)
+
 
 
 
