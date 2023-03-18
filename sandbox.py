@@ -3,6 +3,37 @@ import numpy as np
 import pandas as pd
 
 '''
+dataset = np.array([[1, 2, 3], [1, 2, 3]])
+labels = np.array([[1, 0], [1, 0]])
+
+nn = nnf.NeuralNetwork(dataset, labels, 1, 0.1)
+
+nn.addHiddenLayer(3, 2, 1)
+nn.addHiddenLayer(2, 2, 2)
+
+nn.addActivation(1, "Sigmoid")
+nn.addActivation(2, "Softmax")
+
+nn.addError()
+
+nn.layers[1].weights = np.array([[4., 5.], [6., 7.], [8., 9.]])
+nn.layers[1].bias = np.array([1., 1.])
+nn.layers[2].weights = np.array([[4., 5.], [6., 7.]])
+nn.layers[2].bias = np.array([2., 2.])
+
+nn.train()
+'''
+
+
+
+
+
+# TO DO: detect shape of neural network for correct backpropagation
+
+
+
+
+'''
 dataset = np.array([[1, 2, 3, 4], [1, 2, 3, 4]])
 labels = np.array([[0.01, 0.99], [0.01, 0.99]])
 
@@ -40,6 +71,8 @@ error = labels - layer2Activation
 print(error)
 '''
 
+
+
 def one_hot(Y):
     one_hot_Y = np.zeros((Y.size, Y.max() + 1))
     one_hot_Y[np.arange(Y.size), Y] = 1
@@ -55,13 +88,13 @@ X = data[1:].T
 
 
 
-network = nnf.NeuralNetwork(X, Y, len(X), 0.01)
+network = nnf.NeuralNetwork(X, Y, len(X), 0.001)
 
 network.addHiddenLayer(784, 10, 1)
 network.addActivation(1, "Sigmoid")
 network.addHiddenLayer(10, 10, 2)
 network.addActivation(2, "Softmax")
-network.addError()
+network.addError("Categorical Cross Entropy")
 
 network.train()
 

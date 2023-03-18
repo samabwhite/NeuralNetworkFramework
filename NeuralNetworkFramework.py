@@ -23,8 +23,8 @@ class NeuralNetwork(object):
     def addActivation(self, layerNumber, type):
         self.layers[layerNumber].setActivation(type)
 
-    def addError(self): # figure out a way to prevent hidden layers to be added after error layer
-        self.errorLayer = Error()
+    def addError(self, type): # figure out a way to prevent hidden layers to be added after error layer
+        self.errorLayer = Error(type)
         self.layers.append(self.errorLayer)
         self.complete = True
 
@@ -44,26 +44,24 @@ class NeuralNetwork(object):
                 layer[index].activationLayer.forwardPass(layer[index].output)
         self.errorLayer.forwardPass(layer[-2].activationLayer.output, label)
 
-    def backwardPass(self):
+    def backwardPass(self, label):
         layer = self.layers
-        # call backward pass on error
-        errorDerivative = self.errorLayer.backwardPass()
         # loop through each layer backward passing
         for index in range(2, len(self.layers)):
-            layer[-index].backwardPass(layer, errorDerivative)
+            layer[-index].backwardPass(self.layers, self.errorLayer.networkOutput, label)
         # update parameters
+        
 
     def updateWeights(self):
         layer = self.layers
         for index in range(2, len(self.layers)):
             layer[-index].update(self.alpha)
 
-    def displayNetwork(self):
-        for layer in self.layers[1:-1]:
-            print(str(layer.weights))
+    def displayNetworkOutput(self):
+        print(self.errorLayer.networkOutput)
 
     def displayNetworkError(self):
-        print("Error: " + str(self.errorLayer.totalError))
+        print("Error: " + str(self.errorLayer.error))
 
 
     def checkLayerCompatibility(self, newLayer, layerNumber):
@@ -112,12 +110,17 @@ class NeuralNetwork(object):
         if not self.complete:
             print("Error Layer Missing: Network not complete")
 
+
         for data, label in zip(self.dataset, self.labels):
-    
             self.forwardPass(data, label)
             self.displayNetworkError()
-            self.backwardPass()
+            self.backwardPass(label)
             self.updateWeights()
+            
+
+        
+            
+            
 
             
             
@@ -164,7 +167,32 @@ class HiddenLayer(Layer):
         return self.output
 
 
-    def backwardPass(self, network, errorDerivative):
+    def backwardPass(self, network, networkOutput, label):
+        layerIndex = network.index(self)
+        # need to add sum and 1/m to average out derivatives for batchsize
+        if layerIndex == len(network)-2: 
+            errorDeriv = network[-1].backwardPass(networkOutput, label)
+            self.dZ = network[layerIndex].activationLayer.backwardPass(errorDeriv) 
+            self.dB = self.dZ # * 1
+            self.dW = []
+            for i in self.input:
+                self.dW.append(i * self.dZ)
+            self.dW = np.array(self.dW) 
+        else:
+            self.dZ = []
+            for dZ, weights in zip(network[layerIndex+1].dZ, network[layerIndex].weights):
+                self.dZ.append(np.sum(dZ * weights))
+            self.dZ *= network[layerIndex].activationLayer.backwardPass()
+            self.dB = self.dZ # * 1
+            self.dW = []
+            for i in self.input:
+                self.dW.append(i * self.dZ)
+            self.dW = np.array(self.dW)
+            
+            
+
+
+        '''
         def foil(dZ, input):
             dW = []
             for i in dZ:
@@ -173,6 +201,7 @@ class HiddenLayer(Layer):
             return dW
 
         # if this layer is the output layer, 
+        
         if network[-2] == self:
             self.dZ = errorDerivative * self.activationLayer.backwardPass()
             self.dB = self.dZ
@@ -182,7 +211,10 @@ class HiddenLayer(Layer):
             self.dZ = np.dot(network[layerIndex+1].dZ, network[layerIndex+1].weights.T) * self.activationLayer.backwardPass() # second dot value rotated
             self.dB = self.dZ
             self.dW = np.array(foil(self.dZ, self.input))
-        
+        '''
+
+
+
 
     def update(self, alpha):
         self.weights += -(alpha * np.reshape(self.dW, (self.weights.shape)))
@@ -235,9 +267,10 @@ class SoftMaxActivation(Layer):
             '''
         return self.output
 
-    def backwardPass(self):
-        self.derivative = self.output * (np.subtract(1, self.output)) # softMaxOutput * (1 - softMaxOutput)
-        return self.derivative 
+    def backwardPass(self, errorDeriv):
+        n = np.size(self.output)
+        tmp = np.reshape(np.tile(self.output, n), (10,10))
+        return np.dot(tmp * (np.identity(n) - np.transpose(tmp)), errorDeriv)
 
     def update(self):
         pass
@@ -245,39 +278,56 @@ class SoftMaxActivation(Layer):
 
 
 class Error(Layer):
-    def __init__(self):
-        self.correct = 0
-        self.incorrect = 0
+    def __init__(self, type):
+        self.errorType = type
+        self.total = 1
+        self.correct = 1
+
 
     def forwardPass(self, networkOutput, labels):
         self.networkOutput = networkOutput
         self.labels = labels
 
-        self.totalError = self.totalSquaredError(self.networkOutput, self.labels)
-        self.totalErrorDerivative = self.squaredErrorDerivative(self.networkOutput, labels)
+        if self.errorType == "Categorical Cross Entropy":
+            self.error = self.categoricalCrossEntropy(self.networkOutput, self.labels)
+        elif self.errorType == "Mean Squared Error":
+            self.error = self.totalSquaredError(self.networkOutput, self.labels)
+        else:
+            print("Error Type: " + str(self.errorType + " is unknown. Try again."))
+        #self.meanError = self.totalSquaredError(self.networkOutput, self.labels)
+        #self.totalErrorDerivative = self.squaredErrorDerivative(self.networkOutput, labels)
+        if np.argmax(networkOutput) == np.argmax(labels):
+            self.correct += 1
+        self.total += 1
+        print(self.correct / self.total)
+        print(networkOutput)
+        self.output = self.error
 
-        self.output = self.totalError
-
-    def backwardPass(self):
-        self.derivative = np.subtract(self.networkOutput, self.labels) # output - labels # HERE THIS IS THE SAME AS SQUARED ERROR DERIVATIVE BUT IS PRODUCING DIFFERENT VALUES
-        return self.derivative
-
+    def backwardPass(self, predicted, labels):
+        if self.errorType == "Categorical Cross Entropy":
+            return self.derivCCE(predicted, labels)
+        elif self.errorType == "Mean Squared Error":
+            #return squaredErrorDerivative(predicted, labels)
+            pass
+        else:
+            print("Error Type: " + str(self.errorType + " is unknown. Try again."))
 
     def totalSquaredError(self, predicted, labels):
-        print(labels)
-        print(np.round(predicted)) 
-        if np.argmax(self.networkOutput) == np.where(labels == 1):
-                self.correct += 1
-        else:
-                self.incorrect += 1
-        print(self.correct / (self.correct + self.incorrect))
-
-        return np.sum((1/2) * np.power(np.subtract(labels, predicted), 2))
+        print("Target Output: " + str(labels))
+        print("System Output: " + str(predicted))
+        # needs to divide by number of predictions, in this case it's 1 
+        return (1/len(predicted))*np.sum(np.power(np.subtract(labels, predicted), 2))
 
     def squaredErrorDerivative(self, predicted, labels):
-        return np.subtract(predicted, labels)
+        pass
+
+    
+    def categoricalCrossEntropy(self, predicted, labels):
+        return -np.sum(labels * np.log(predicted + (10**-20)))
 
 
+    def derivCCE(self, predicted, labels):
+        return -labels/(predicted + (10**-20))
 
 
 
