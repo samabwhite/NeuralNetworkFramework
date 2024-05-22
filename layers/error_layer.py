@@ -1,4 +1,4 @@
-from layers.layer import Layer
+from layers import Layer
 
 class ErrorLayer(Layer):
     def forwardPass(self, predicted, labels):

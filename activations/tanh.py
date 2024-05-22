@@ -1,5 +1,5 @@
 import numpy as np
-from layers.activation_layer import ActivationLayer
+from layers import ActivationLayer
 
 class TanhActivation(ActivationLayer):
     def forwardPass(self, input):

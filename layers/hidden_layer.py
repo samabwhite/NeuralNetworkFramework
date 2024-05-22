@@ -1,5 +1,5 @@
 import numpy as np
-from layers.layer import Layer
+from layers import Layer
 
 class HiddenLayer(Layer):
     def __init__(self, inputSize, outputSize):
@@ -10,7 +10,7 @@ class HiddenLayer(Layer):
 
     def forwardPass(self, input):
         self.input = input
-        self.output = np.dot(input, self.weights) + self.bias
+        self.output = np.dot(self.input, self.weights) + self.bias
         if self.activationLayer:
             self.output = self.activationLayer.forwardPass(self.output)
         return self.output
@@ -18,9 +18,10 @@ class HiddenLayer(Layer):
     def backwardPass(self, dA):
         if self.activationLayer:
             dA = self.activationLayer.backwardPass(dA)
+        batch_size = self.input.shape[0]
+        self.dW = np.dot(self.input.T, dA) / batch_size
+        self.dB = np.sum(dA, axis=0) / batch_size
         dA_prev = np.dot(dA, self.weights.T)
-        self.dW = np.dot(self.input.T.reshape(-1, 1), dA.reshape(1, -1))
-        self.dB = np.sum(dA, axis=0, keepdims=True)
         return dA_prev
 
     def update(self, alpha):

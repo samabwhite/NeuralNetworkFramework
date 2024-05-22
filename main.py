@@ -1,139 +1,59 @@
 import numpy as np
-from layers.hidden_layer import HiddenLayer
-from activations.sigmoid import SigmoidActivation
-from activations.softmax import SoftMaxActivation
-from activations.relu import ReLUActivation
-from activations.tanh import TanhActivation
-from activations.elu import ELUActivation
-from errors.mean_squared_error import MeanSquaredError
-from errors.categorical_cross_entropy import CategoricalCrossEntropy
-from errors.binary_cross_entropy import BinaryCrossEntropy
-from errors.kl_divergence import KLDivergence
-from errors.cosine_similarity import CosineSimilarityLoss
+import tensorflow as tf
+from models import NeuralNetwork
 
-class NeuralNetwork:
-    def __init__(self, dataset, labels, epochs, alpha):
-        self.dataset = dataset
-        self.labels = labels
-        self.alpha = alpha
-        self.epochs = epochs
-        self.layers = []
-        self.errorLayer = None
-        self.complete = False
-        self.errors = []
+# Loading MNIST dataset
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
-    def addHiddenLayer(self, inputSize, outputSize):
-        if self.complete:
-            print("Can't add layers after the error layer.")
-            return
-        newLayer = HiddenLayer(inputSize, outputSize)
-        if len(self.layers) == 0:
-            self.layers.append(newLayer)
-        else:
-            lastLayerOutputSize = self.layers[-1].weights.shape[1]
-            if newLayer.weights.shape[0] != lastLayerOutputSize:
-                print(f"Incompatible layer size. Expected input size {lastLayerOutputSize}, got {newLayer.weights.shape[0]}.")
-                return
-            self.layers.append(newLayer)
+x_train = x_train.reshape(-1, 28 * 28) / 255.0
+x_test = x_test.reshape(-1, 28 * 28) / 255.0
 
-    def addActivation(self, layerNumber, activationType):
-        if 0 <= layerNumber < len(self.layers):
-            if activationType == "Sigmoid":
-                self.layers[layerNumber].setActivation(SigmoidActivation())
-            elif activationType == "Softmax":
-                self.layers[layerNumber].setActivation(SoftMaxActivation())
-            elif activationType == "ReLU":
-                self.layers[layerNumber].setActivation(ReLUActivation())
-            elif activationType == "Tanh":
-                self.layers[layerNumber].setActivation(TanhActivation())
-            elif activationType == "ELU":
-                self.layers[layerNumber].setActivation(ELUActivation())
-            else:
-                print("Unknown activation type")
-        else:
-            print(f"Layer number {layerNumber} is out of range.")
+# One-hot encoding
+y_train = tf.keras.utils.to_categorical(y_train, 10)
+y_test = tf.keras.utils.to_categorical(y_test, 10)
 
-    def addError(self, errorType):
-        if self.complete:
-            print("Error layer already added.")
-            return
-        if errorType == "Mean Squared Error":
-            self.errorLayer = MeanSquaredError()
-        elif errorType == "Categorical Cross Entropy":
-            self.errorLayer = CategoricalCrossEntropy()
-        elif errorType == "Binary Cross Entropy":
-            self.errorLayer = BinaryCrossEntropy()
-        elif errorType == "KLDivergence":
-            self.errorLayer = KLDivergence()
-        elif errorType == "Cosine Similarity":
-            self.errorLayer = CosineSimilarityLoss()
-        else:
-            print("Unknown error type")
-        self.complete = True
+# Parameters
+epochs = 10
+alpha = 0.1
+batch_size = 32
 
-    def removeLayer(self, layerNumber):
-        if layerNumber == 0:
-            print("Can't remove the input layer from the network.")
-        elif 0 <= layerNumber < len(self.layers):
-            del self.layers[layerNumber]
-        else:
-            print(f"Layer number {layerNumber} is out of range.")
+# Create neural network object
+nn = NeuralNetwork(x_train, y_train, epochs, alpha, batch_size)
 
-    def forwardPass(self, data, label=None):
-        output = data
-        for layer in self.layers:
-            output = layer.forwardPass(output)
-        if label is not None:
-            self.errorLayer.forwardPass(output, label)
-        return output
+# Add hidden and activation layers
+nn.addHiddenLayer(inputSize=784, outputSize=128)
+nn.addActivation(layerNumber=0, activationType="Sigmoid")
 
-    def backwardPass(self):
-        self.errorLayer.backwardPass()
-        dA = self.errorLayer.dA
-        for layer in reversed(self.layers):
-            dA = layer.backwardPass(dA)
+nn.addHiddenLayer(inputSize=128, outputSize=64)
+nn.addActivation(layerNumber=1, activationType="Sigmoid")
 
-    def updateWeights(self):
-        for layer in self.layers:
-            layer.update(self.alpha)
+nn.addHiddenLayer(inputSize=64, outputSize=10)
+nn.addActivation(layerNumber=2, activationType="Softmax")
 
-    def train(self):
-        if not self.complete:
-            print("Error Layer Missing: Network not complete.")
-            return
-        for epoch in range(self.epochs):
-            epoch_error = 0
-            for data, label in zip(self.dataset, self.labels):
-                self.forwardPass(data, label)
-                self.backwardPass()
-                self.updateWeights()
-                epoch_error += self.errorLayer.error
-            self.errors.append(epoch_error / len(self.dataset))
-            print(f"Epoch {epoch+1}/{self.epochs}, Error: {self.errors[-1]}")
+# Add error layer
+nn.addError(errorType="Categorical Cross Entropy")
 
-    def displayNetworkError(self):
-        print(f"Error: {self.errorLayer.error}")
+# Train the network
+nn.train()
 
-if __name__ == "__main__":
+# Plot the error as a graph
+import matplotlib.pyplot as plt
+plt.plot(range(epochs), nn.errors)
+plt.xlabel('Epochs')
+plt.ylabel('Error')
+plt.title('Training Error over Epochs')
+plt.show()
 
-    # Create some dummy data
-    dataset = np.random.randn(100, 3)  # 100 samples, 3 features each
-    labels = np.random.randn(100, 1)  # 100 samples, 1 label each
+# Calculate accuracy
+correct_predictions = 0
+print("\nDetailed Output on Test Data:")
+for data, label in zip(x_test, y_test):
+    output = nn.forwardPass(data)
+    predicted_label = np.argmax(output)
+    actual_label = np.argmax(label)
+    print(f"Predicted: {predicted_label}, Actual: {actual_label}")
+    if predicted_label == actual_label:
+        correct_predictions += 1
 
-    # Initialize neural network
-    nn = NeuralNetwork(dataset, labels, epochs=10, alpha=0.01)
-
-    # Add layers
-    nn.addHiddenLayer(inputSize=3, outputSize=5)
-    nn.addActivation(0, "ReLU")
-    nn.addHiddenLayer(inputSize=5, outputSize=1)
-    nn.addActivation(1, "Sigmoid")
-
-    # Add error layer
-    nn.addError("Mean Squared Error")
-
-    # Train the network
-    nn.train()
-
-    # Display final network error
-    nn.displayNetworkError()
+accuracy = correct_predictions / len(x_test)
+print(f"\nAccuracy on test data: {accuracy * 100:.2f}%")

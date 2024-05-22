@@ -1,5 +1,5 @@
 import numpy as np
-from layers.error_layer import ErrorLayer
+from layers import ErrorLayer
 
 class CategoricalCrossEntropy(ErrorLayer):
     def forwardPass(self, predicted, labels):
